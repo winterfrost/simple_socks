@@ -39,16 +39,13 @@ struct S5Req
 	}
 
 	int ParseDomainName(char *buf, int size) {
-		if (size < 1)
+		if (size < 3) 
 			return 0;
-		int name_size = buf[0];
-		if (name_size+3 != size) {
-			return 0;
-		}
+		int name_size = size - 2;
 		domain_name = (char*)malloc(name_size + 1);
 		memset(domain_name,0,name_size + 1);
-		memcpy(domain_name,buf+1,name_size);
-		port = *(WORD*)(buf+1+name_size);
+		memcpy(domain_name,buf,name_size);
+		port = *(WORD*)(buf+name_size);
 
 		struct hostent *host = gethostbyname(domain_name);
 		if (!host || host->h_addrtype != AF_INET || !host->h_addr)

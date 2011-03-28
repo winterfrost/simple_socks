@@ -5,8 +5,8 @@ DIR = bin\\
 NAME = socks
 OUTNAME = $(DIR)$(NAME).exe
 
-CFLAGS = /nologo /D_DBG /MT /c /EHs /Zi
-LFLAGS = /DEBUG /SUBSYSTEM:WINDOWS /ENTRY:main /OUT:$(OUTNAME)
+CFLAGS = /nologo /D_DBG /MT /c /Zi
+LFLAGS = /DEBUG /SUBSYSTEM:WINDOWS /OUT:$(OUTNAME)
 
 clean:
 	@del $(NAME).obj \
@@ -16,7 +16,7 @@ clean:
 
 SOURCES = main.cpp Socks.cpp Thread.cpp functions.cpp
 OBJS = main.obj Socks.obj Thread.obj functions.obj
-LIBS = kernel32.lib user32.lib shlwapi.lib ws2_32.lib msvcrt.lib
+LIBS = kernel32.lib user32.lib shlwapi.lib ws2_32.lib
 
 build: 
 	$(CC) $(CFLAGS) $(SOURCES)

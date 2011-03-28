@@ -1,7 +1,7 @@
 #include "std.h"
 #include "Socks.h"
 
-int main()
+int WINAPI WinMain(HINSTANCE,HINSTANCE,LPSTR,int)
 {
 	WSADATA wdata;
 	WSAStartup(0x0202,&wdata);

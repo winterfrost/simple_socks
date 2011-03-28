@@ -132,7 +132,7 @@ int S5Conn::Run()
 			if (res != size+2) {
 				return 0;
 			}
-			if (!req.ParseDomainName(buf,res+1)) {
+			if (!req.ParseDomainName(buf,res)) {
 				resp.rep = 4;
 				goto _err;
 			}
