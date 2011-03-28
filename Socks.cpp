@@ -11,6 +11,7 @@ Socks5::Socks5(const char *ip_addr, WORD port) : Thread()
 
 Socks5::~Socks5()
 {
+	Uninit();
 }
 
 int Socks5::Run()
