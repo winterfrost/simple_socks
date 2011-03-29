@@ -103,7 +103,6 @@ private:
 	int ForwardLoop();
 };
 
-
 struct S5Conn::SocketForward 
 {
 	SOCKET sock;
@@ -127,7 +126,6 @@ struct S5Conn::SocketForward
 	}
 };
 
-
 class Socks5 : public Thread
 {
 public:
@@ -139,5 +137,3 @@ private:
 	SOCKET m_sock;
 	sockaddr_in m_saddr;
 };
-
-

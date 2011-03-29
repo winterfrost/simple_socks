@@ -207,7 +207,7 @@ int S5Conn::ForwardLoop()
 	fwlist.push_back(dst);
 	tSocketForwardList::iterator iter;
 
-	while(1) {
+	while (1) {
 		FD_ZERO(&r_set);
 		FD_ZERO(&w_set);
 
