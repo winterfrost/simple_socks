@@ -97,7 +97,6 @@ public:
 	virtual ~S5Conn();
 	int Run();
 private:
-	static const int s_buf_size = 4096;
 	SOCKET m_sock;
 	SOCKET m_dst_sock;
 

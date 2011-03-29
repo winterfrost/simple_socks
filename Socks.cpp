@@ -251,7 +251,7 @@ int S5Conn::ForwardLoop()
 						if (!buf) 
 							goto _end;
 					}
-					res = recv(e->sock,buf,s_buf_size,0);
+					res = recv(e->sock,buf,size,0);
 					if (res <= 0) {
 						dbg("recv error %d",WSAGetLastError());
 						goto _end;
