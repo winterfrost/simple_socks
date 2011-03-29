@@ -9,7 +9,7 @@ public:
 	virtual ~Thread();
 	virtual int Run() = 0;
 	int Start();
-	void Terminate();
+	void Terminate(DWORD exit_code = 0);
 	int Wait();
 	
 	operator HANDLE() {

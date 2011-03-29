@@ -17,10 +17,10 @@ int Thread::Start()
 	return m_thread ? 1:0;
 }
 
-void Thread::Terminate()
+void Thread::Terminate(DWORD exit_code)
 {
 	if (m_thread) {
-		TerminateThread(m_thread,0);
+		TerminateThread(m_thread,exit_code);
 		CloseHandle(m_thread);
 		m_thread = 0;
 	}
