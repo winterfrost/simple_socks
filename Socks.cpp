@@ -188,7 +188,7 @@ int S5Conn::ForwardLoop()
 
 	timeval tv;
 	tv.tv_usec = 0;
-	tv.tv_sec = 8;
+	tv.tv_sec = 180;
 
 	u_long mode = 1;
 	ioctlsocket(m_sock,FIONBIO,&mode);
@@ -213,17 +213,19 @@ int S5Conn::ForwardLoop()
 
 		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
 			SocketForward *e = *iter;
-			FD_SET(e->sock,&r_set);
+			if (!e->status)
+				FD_SET(e->sock,&r_set);
 			FD_SET(e->sock,&w_set);
 		}
 
-		res = select(0,&r_set,&w_set,0,0);
+		res = select(0,&r_set,&w_set,0,&tv);
 		if (res == SOCKET_ERROR) {
+			dbg("select error %d",WSAGetLastError());
 			break;
 		}
 		if (!res) {
-			Sleep(4);
-			continue;
+			dbg("timed out");
+			break;
 		}
 		
 		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
@@ -238,6 +240,9 @@ int S5Conn::ForwardLoop()
 				}
 				if (!size && !e->status) {
 					e->status = 1;
+					if (e->forward->buf.empty())
+						goto _end;
+					closesocket(e->sock);
 				} else {
 					if (size > buf_size) {
 						buf_size = size;
@@ -261,17 +266,18 @@ int S5Conn::ForwardLoop()
 					dbg("end");
 					goto _end;
 				}
-				res = send(e->sock,e->buf.c_str(),e->buf.size(),0);
+				size_t size = e->buf.size();
+				res = send(e->sock,e->buf.c_str(),size,0);
 				e->buf.clear();
 				if (res == SOCKET_ERROR) {
-					dbg("send error %d",WSAGetLastError());
+					dbg("send error %d, %d bytes",WSAGetLastError(),size);
 					goto _end;
 				}
 				if (e->status) 
 					e->status = 2;
 			}
 		}
-		Sleep(4);
+		Sleep(1);
 	}
 
 _end:
