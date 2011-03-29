@@ -3,6 +3,7 @@
 Thread::Thread()
 {
 	m_thread = 0;
+	m_id = 0;
 }
 
 Thread::~Thread()
@@ -13,7 +14,7 @@ Thread::~Thread()
 
 int Thread::Start()
 {
-	m_thread = CreateThread(0,0,Worker,this,0,0);
+	m_thread = CreateThread(0,0,Worker,this,0,&m_id);
 	return m_thread ? 1:0;
 }
 

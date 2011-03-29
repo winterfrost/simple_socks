@@ -5,6 +5,7 @@ class Thread
 {
 public:
 	HANDLE m_thread;
+	DWORD m_id;
 	Thread();
 	virtual ~Thread();
 	virtual int Run() = 0;
