@@ -21,6 +21,7 @@ void Thread::Terminate()
 {
 	if (m_thread) {
 		TerminateThread(m_thread,0);
+		CloseHandle(m_thread);
 		m_thread = 0;
 	}
 }
