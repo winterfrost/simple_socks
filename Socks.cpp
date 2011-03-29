@@ -178,39 +178,107 @@ int S5Conn::Run()
 int S5Conn::ForwardLoop()
 {
 	dbg("in");
-	fd_set fds;
+	fd_set r_set;
+	fd_set w_set;
 	int res;
-	char buf[4096];
+	size_t buf_size = 4096;
+	char *buf = (char *) malloc(buf_size);
+	if (!buf) 
+		return 0;
 
 	timeval tv;
 	tv.tv_usec = 0;
 	tv.tv_sec = 8;
 
-	while (1) {
-		FD_ZERO(&fds);
-		FD_SET(m_sock,&fds);
-		FD_SET(m_dst_sock,&fds);
+	u_long mode = 1;
+	ioctlsocket(m_sock,FIONBIO,&mode);
+	ioctlsocket(m_dst_sock,FIONBIO,&mode);
 
-		res = select(0,&fds,0,0,&tv);
-		if (res == SOCKET_ERROR)
+	SocketForward *src = new SocketForward(m_sock);
+	if (!src) 
+		return 0;
+	SocketForward *dst = new SocketForward(m_dst_sock,src);
+	if (!dst) 
+		return 0;
+	src->SetForward(dst);
+
+	tSocketForwardList fwlist;
+	fwlist.push_back(src);
+	fwlist.push_back(dst);
+	tSocketForwardList::iterator iter;
+
+	while(1) {
+		FD_ZERO(&r_set);
+		FD_ZERO(&w_set);
+
+		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
+			SocketForward *e = *iter;
+			FD_SET(e->sock,&r_set);
+			FD_SET(e->sock,&w_set);
+		}
+
+		res = select(0,&r_set,&w_set,0,0);
+		if (res == SOCKET_ERROR) {
 			break;
-
-		if (FD_ISSET(m_sock,&fds)) {
-			res = recv(m_sock,buf,4096,0);
-			if (res <= 0)
-				break;
-			res = send(m_dst_sock,buf,res,0);
 		}
-
-		if (FD_ISSET(m_dst_sock,&fds)) {
-			res = recv(m_dst_sock,buf,4096,0);
-			if (res <= 0)
-				break;
-			res = send(m_sock,buf,res,0);
+		if (!res) {
+			Sleep(4);
+			continue;
 		}
-	_next:
-		Sleep(3);
+		
+		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
+			SocketForward *e = *iter;
+			
+			if (FD_ISSET(e->sock,&r_set)) {
+				u_long size = 0;
+				res = ioctlsocket(e->sock,FIONREAD,&size);
+				if (res == SOCKET_ERROR) {
+					dbg("ioctlsocket error %d",WSAGetLastError());
+					goto _end;
+				}
+				if (!size && !e->status) {
+					e->status = 1;
+				} else {
+					if (size > buf_size) {
+						buf_size = size;
+						free(buf);
+						buf = (char*)malloc(buf_size);
+						if (!buf) 
+							goto _end;
+					}
+					res = recv(e->sock,buf,s_buf_size,0);
+					if (res <= 0) {
+						dbg("recv error %d",WSAGetLastError());
+						goto _end;
+					}
+					SocketForward *to = e->forward;
+					to->ForwardBuf(buf,res);
+				}
+			}
+			
+			if (FD_ISSET(e->sock,&w_set)) {
+				if (e->status == 2 || e->forward->status == 1) {
+					dbg("end");
+					goto _end;
+				}
+				res = send(e->sock,e->buf.c_str(),e->buf.size(),0);
+				e->buf.clear();
+				if (res == SOCKET_ERROR) {
+					dbg("send error %d",WSAGetLastError());
+					goto _end;
+				}
+				if (e->status) 
+					e->status = 2;
+			}
+		}
+		Sleep(4);
 	}
+
+_end:
+	if (buf) 
+		free(buf);
+	delete src;
+	delete dst;
 	dbg("out");
 	return 0;
 }

@@ -90,16 +90,44 @@ struct S5Resp
 
 class S5Conn : public Thread
 {
+	struct SocketForward;
+	typedef std::list<SocketForward*> tSocketForwardList;
 public:
 	S5Conn(SOCKET s);
 	virtual ~S5Conn();
 	int Run();
 private:
+	static const int s_buf_size = 4096;
 	SOCKET m_sock;
 	SOCKET m_dst_sock;
 
 	int ForwardLoop();
 };
+
+
+struct S5Conn::SocketForward 
+{
+	SOCKET sock;
+	SocketForward *forward;
+	std::string buf;
+	int status;
+
+	SocketForward(SOCKET s1,SocketForward *fw = 0) {
+		sock = s1;
+		forward = fw;
+		status = 0;
+	}
+	~SocketForward() {
+		buf.clear();
+	}
+	void SetForward(SocketForward* fw) {
+		forward = fw;
+	}
+	void ForwardBuf(char *data, size_t size) {
+		buf.append(data,size);
+	}
+};
+
 
 class Socks5 : public Thread
 {
@@ -112,3 +140,5 @@ private:
 	SOCKET m_sock;
 	sockaddr_in m_saddr;
 };
+
+
