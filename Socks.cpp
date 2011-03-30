@@ -194,17 +194,13 @@ int S5Conn::ForwardLoop()
 	ioctlsocket(m_sock,FIONBIO,&mode);
 	ioctlsocket(m_dst_sock,FIONBIO,&mode);
 
-	SocketForward *src = new SocketForward(m_sock);
-	if (!src) 
-		goto _end;
-	SocketForward *dst = new SocketForward(m_dst_sock,src);
-	if (!dst) 
-		goto _end;
-	src->forward = dst;
+	SocketForward src(m_sock);
+	SocketForward dst(m_dst_sock,&src);
+	src.forward = &dst;
 
 	tSocketForwardList fwlist;
-	fwlist.push_back(src);
-	fwlist.push_back(dst);
+	fwlist.push_back(&src);
+	fwlist.push_back(&dst);
 	tSocketForwardList::iterator iter;
 
 	int count = 4;
@@ -233,7 +229,7 @@ int S5Conn::ForwardLoop()
 
 		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
 			SocketForward *e = *iter;
-
+			
 			if (FD_ISSET(e->sock,&r_set)) {
 				res = recv(e->sock,buf,buf_size,0);
 				if (res == SOCKET_ERROR) {
@@ -276,9 +272,7 @@ int S5Conn::ForwardLoop()
 	}
 
 _end:
-	if (buf) free(buf);
-	if (src) delete src;
-	if (dst) delete dst;
+	free(buf);
 	dbg("out");
 	return 0;
 }
