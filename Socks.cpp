@@ -210,11 +210,10 @@ int S5Conn::ForwardLoop()
 
 		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
 			SocketForward *e = *iter;
-			if (!e->close) {
+			if (!e->close) 
 				FD_SET(e->sock,&r_set);
-				if (e->write)
-					FD_SET(e->sock,&w_set);
-			}
+			if (e->write)
+				FD_SET(e->sock,&w_set);
 		}
 
 		res = select(0,&r_set,&w_set,0,&tv);
@@ -237,9 +236,8 @@ int S5Conn::ForwardLoop()
 					goto _end;
 				}
 				if (!res) {
-					closesocket(e->sock);
 					e->close = true;
-					if (e->forward->buf.empty() || e->forward->close)
+					if (!e->forward->write)
 						goto _end;
 				} else {
 					e->forward->buf.append(buf,res);
@@ -251,7 +249,6 @@ int S5Conn::ForwardLoop()
 				if (e->buf.empty()) {
 					e->write = false;
 					if (e->forward->close) {
-						e->close = true;
 						goto _end;
 					}
 				} else {
