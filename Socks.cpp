@@ -61,7 +61,7 @@ S5Conn::S5Conn( SOCKET s ) : Thread()
 
 S5Conn::~S5Conn()
 {
-	dbg("closeing");
+	dbg("~");
 	if (m_sock != INVALID_SOCKET) 
 		closesocket(m_sock);
 	if (m_dst_sock != INVALID_SOCKET)
@@ -181,14 +181,14 @@ int S5Conn::ForwardLoop()
 	fd_set r_set;
 	fd_set w_set;
 	int res;
-	size_t buf_size = 4096;
+	size_t buf_size = 4096*2;
 	char *buf = (char *) malloc(buf_size);
 	if (!buf) 
 		return 0;
 
 	timeval tv;
 	tv.tv_usec = 0;
-	tv.tv_sec = 180;
+	tv.tv_sec = 120;
 
 	u_long mode = 1;
 	ioctlsocket(m_sock,FIONBIO,&mode);
@@ -200,22 +200,25 @@ int S5Conn::ForwardLoop()
 	SocketForward *dst = new SocketForward(m_dst_sock,src);
 	if (!dst) 
 		return 0;
-	src->SetForward(dst);
+	src->forward = dst;
 
 	tSocketForwardList fwlist;
 	fwlist.push_back(src);
 	fwlist.push_back(dst);
 	tSocketForwardList::iterator iter;
 
+	int count = 4;
 	while (1) {
 		FD_ZERO(&r_set);
 		FD_ZERO(&w_set);
 
 		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
 			SocketForward *e = *iter;
-			if (!e->status)
+			if (!e->close) {
 				FD_SET(e->sock,&r_set);
-			FD_SET(e->sock,&w_set);
+				if (e->write)
+					FD_SET(e->sock,&w_set);
+			}
 		}
 
 		res = select(0,&r_set,&w_set,0,&tv);
@@ -232,52 +235,44 @@ int S5Conn::ForwardLoop()
 			SocketForward *e = *iter;
 			
 			if (FD_ISSET(e->sock,&r_set)) {
-				u_long size = 0;
-				res = ioctlsocket(e->sock,FIONREAD,&size);
+				res = recv(e->sock,buf,buf_size,0);
 				if (res == SOCKET_ERROR) {
-					dbg("ioctlsocket error %d",WSAGetLastError());
+					dbg("recv error %d",WSAGetLastError());
 					goto _end;
 				}
-				if (!size && !e->status) {
-					e->status = 1;
-					if (e->forward->buf.empty())
-						goto _end;
+				if (!res) {
 					closesocket(e->sock);
-				} else {
-					if (size > buf_size) {
-						buf_size = size;
-						free(buf);
-						buf = (char*)malloc(buf_size);
-						if (!buf) 
-							goto _end;
-					}
-					res = recv(e->sock,buf,size,0);
-					if (res <= 0) {
-						dbg("recv error %d",WSAGetLastError());
+					e->close = true;
+					if (e->forward->buf.empty() || e->forward->close)
 						goto _end;
-					}
-					SocketForward *to = e->forward;
-					to->ForwardBuf(buf,res);
+				} else {
+					e->forward->buf.append(buf,res);
+					e->forward->write = true;
 				}
 			}
 			
 			if (FD_ISSET(e->sock,&w_set)) {
-				if (e->status == 2 || e->forward->status == 1) {
-					dbg("end");
-					goto _end;
+				if (e->buf.empty()) {
+					e->write = false;
+					if (e->forward->close) {
+						e->close = true;
+						goto _end;
+					}
+				} else {
+					res = send(e->sock,e->buf.c_str(),e->buf.size(),0);
+					e->buf.clear();
+					if (res == SOCKET_ERROR) {
+						dbg("send error %d",WSAGetLastError());
+						goto _end;
+					}
 				}
-				size_t size = e->buf.size();
-				res = send(e->sock,e->buf.c_str(),size,0);
-				e->buf.clear();
-				if (res == SOCKET_ERROR) {
-					dbg("send error %d, %d bytes",WSAGetLastError(),size);
-					goto _end;
-				}
-				if (e->status) 
-					e->status = 2;
 			}
 		}
-		Sleep(1);
+
+		if (--count <=0) {
+			Sleep(1);
+			count = 4;
+		}
 	}
 
 _end:

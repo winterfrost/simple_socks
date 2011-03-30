@@ -72,6 +72,7 @@ struct S5Resp
 		bnd_addr = 0;
 		bnd_port = 0;
 	}
+
 	~S5Resp() {
 
 	}
@@ -108,21 +109,17 @@ struct S5Conn::SocketForward
 	SOCKET sock;
 	SocketForward *forward;
 	std::string buf;
-	int status;
+	bool close;
+	bool write;
 
 	SocketForward(SOCKET s1,SocketForward *fw = 0) {
 		sock = s1;
 		forward = fw;
-		status = 0;
+		close = false;
+		write = true;
 	}
 	~SocketForward() {
 		buf.clear();
-	}
-	void SetForward(SocketForward* fw) {
-		forward = fw;
-	}
-	void ForwardBuf(char *data, size_t size) {
-		buf.append(data,size);
 	}
 };
 
