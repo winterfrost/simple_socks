@@ -196,10 +196,10 @@ int S5Conn::ForwardLoop()
 
 	SocketForward *src = new SocketForward(m_sock);
 	if (!src) 
-		return 0;
+		goto _end;
 	SocketForward *dst = new SocketForward(m_dst_sock,src);
 	if (!dst) 
-		return 0;
+		goto _end;
 	src->forward = dst;
 
 	tSocketForwardList fwlist;
@@ -230,10 +230,10 @@ int S5Conn::ForwardLoop()
 			dbg("timed out");
 			break;
 		}
-		
+
 		for (iter=fwlist.begin();iter!=fwlist.end();++iter) {
 			SocketForward *e = *iter;
-			
+
 			if (FD_ISSET(e->sock,&r_set)) {
 				res = recv(e->sock,buf,buf_size,0);
 				if (res == SOCKET_ERROR) {
@@ -250,7 +250,7 @@ int S5Conn::ForwardLoop()
 					e->forward->write = true;
 				}
 			}
-			
+
 			if (FD_ISSET(e->sock,&w_set)) {
 				if (e->buf.empty()) {
 					e->write = false;
@@ -276,10 +276,9 @@ int S5Conn::ForwardLoop()
 	}
 
 _end:
-	if (buf) 
-		free(buf);
-	delete src;
-	delete dst;
+	if (buf) free(buf);
+	if (src) delete src;
+	if (dst) delete dst;
 	dbg("out");
 	return 0;
 }

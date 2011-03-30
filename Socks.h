@@ -116,7 +116,7 @@ struct S5Conn::SocketForward
 		sock = s1;
 		forward = fw;
 		close = false;
-		write = true;
+		write = false;
 	}
 	~SocketForward() {
 		buf.clear();
